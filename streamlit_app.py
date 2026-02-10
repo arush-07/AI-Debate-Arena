@@ -122,14 +122,16 @@ class DebateEngine:
 # Initialize Engine
 engine = DebateEngine()
 
-# --- SESSION STATE INITIALIZATION ---
+# --- BULLETPROOF SESSION STATE INITIALIZATION ---
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
     st.session_state.messages = []
     st.session_state.user_hp = 100
     st.session_state.started = False
     st.session_state.radar_data = {"Logic": 50, "Relevance": 50, "Evidence": 50, "Civility": 50, "Conciseness": 50}
-    # ✅ FIX: Initialize ai_side to prevent crash
+
+# ✅ FIX: Separate check for ai_side so it catches old sessions too
+if "ai_side" not in st.session_state:
     st.session_state.ai_side = "AGAINST the Topic"
 
 # --- SIDEBAR ---
@@ -239,7 +241,7 @@ if prompt := st.chat_input("Your argument..."):
                     st.session_state.messages, 
                     st.session_state.persona, 
                     st.session_state.difficulty,
-                    st.session_state.ai_side  # Now this is safe to call
+                    st.session_state.ai_side  # Safe call
                 )
                 st.write(rebuttal)
                 st.session_state.messages.append({"role": "assistant", "content": rebuttal})
