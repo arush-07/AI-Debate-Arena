@@ -20,10 +20,8 @@ st.markdown("""
 
 # --- API KEY SETUP ---
 try:
-    # Try getting key from Secrets
     GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 except:
-    # Fallback for local testing (Paste key here if needed)
     GOOGLE_API_KEY = "PASTE_YOUR_KEY_HERE"
 
 # --- DATA MODELS ---
@@ -49,7 +47,6 @@ class DebateEngine:
             st.error(f"API Error: {e}")
 
     def generate_opening(self, topic: str, persona: str, stance: str):
-        # ✅ NEW: Explicitly tells AI which side to take
         template = """
         You are debating as: {persona}. 
         Topic: "{topic}".
@@ -76,7 +73,6 @@ class DebateEngine:
             "The Bureaucrat": "Obsessed with definitions and citations."
         }
         
-        # ✅ NEW: Reminds AI of its stance every turn
         template = """
         Role: {role}
         Difficulty: {difficulty}
@@ -126,13 +122,15 @@ class DebateEngine:
 # Initialize Engine
 engine = DebateEngine()
 
-# --- SESSION STATE ---
+# --- SESSION STATE INITIALIZATION ---
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
     st.session_state.messages = []
     st.session_state.user_hp = 100
     st.session_state.started = False
     st.session_state.radar_data = {"Logic": 50, "Relevance": 50, "Evidence": 50, "Civility": 50, "Conciseness": 50}
+    # ✅ FIX: Initialize ai_side to prevent crash
+    st.session_state.ai_side = "AGAINST the Topic"
 
 # --- SIDEBAR ---
 with st.sidebar:
@@ -148,7 +146,7 @@ with st.sidebar:
     with col2:
         difficulty = st.selectbox("Difficulty:", ["Easy", "Medium", "Hard", "God Mode"])
     
-    # ✅ 3. AI Stance Selector (New Feature)
+    # 3. AI Stance Selector
     ai_side = st.radio("AI's Position:", ["AGAINST the Topic", "IN FAVOUR of the Topic"], index=0)
 
     st.divider()
@@ -160,7 +158,7 @@ with st.sidebar:
         st.session_state.topic = topic
         st.session_state.persona = persona
         st.session_state.difficulty = difficulty
-        st.session_state.ai_side = ai_side # Save stance to session
+        st.session_state.ai_side = ai_side # Update state with user choice
         
         with st.spinner(f"AI is preparing to argue {ai_side}..."):
             opening = engine.generate_opening(topic, persona, ai_side)
@@ -241,7 +239,7 @@ if prompt := st.chat_input("Your argument..."):
                     st.session_state.messages, 
                     st.session_state.persona, 
                     st.session_state.difficulty,
-                    st.session_state.ai_side  # Pass the fixed stance
+                    st.session_state.ai_side  # Now this is safe to call
                 )
                 st.write(rebuttal)
                 st.session_state.messages.append({"role": "assistant", "content": rebuttal})
