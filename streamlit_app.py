@@ -150,7 +150,7 @@ with st.sidebar:
     with col2: difficulty = st.selectbox("Difficulty:", ["Easy", "Medium", "Hard"])
     ai_side = st.radio("AI's Stance:", ["AGAINST", "IN FAVOUR"], index=0)
     
-    if st.button("🔥 Start Debate", use_container_width=True):
+    if st.button("Start Debate 🔥 ", use_container_width=True):
         st.session_state.messages = []
         st.session_state.user_hp = 100
         st.session_state.ai_hp = 100
@@ -168,7 +168,7 @@ with st.sidebar:
     # --- LIVE SCOREBOARD ---
     if st.session_state.started:
         st.divider()
-        st.subheader("🛡️ Live Health")
+        st.subheader("Live Health 🛡️ ")
         
         # User HP
         st.write(f"**You:** {st.session_state.user_hp}/100")
@@ -179,7 +179,7 @@ with st.sidebar:
         st.progress(st.session_state.ai_hp / 100)
         
         st.divider()
-        if st.button("🏁 End & Analyze", type="primary", use_container_width=True):
+        if st.button("QUIT ❌", type="primary", use_container_width=True):
             st.session_state.user_hp = 0 # Force end
             st.rerun()
 
