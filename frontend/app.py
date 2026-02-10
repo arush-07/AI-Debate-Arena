@@ -2,161 +2,157 @@ import streamlit as st
 import requests
 import uuid
 import time
+import pandas as pd
+import plotly.express as px
+
 st.set_page_config(page_title="AI Debate Arena", page_icon="⚔️", layout="wide")
 API_URL = "http://localhost:8000/api/v1"
+
+# --- CSS ---
 st.markdown("""
 <style>
-    .stProgress > div > div > div > div {
-        background-color: #00FF41;
-    }
-    .big-font {
-        font-size:20px !important;
-        font-weight: bold;
-    }
-    .toast-popup {
-        background-color: #333;
-        color: white;
-        padding: 10px;
-        border-radius: 5px;
-    }
+    .stProgress > div > div > div > div { background-color: #00FF41; }
 </style>
 """, unsafe_allow_html=True)
 
+# --- INIT STATE ---
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
-    st.session_state.messages = []
-    st.session_state.user_hp = 100  
-    st.session_state.round = 1
-    st.session_state.game_over = False
-    st.session_state.last_feedback = "Welcome to the Arena. State your case!"
-   
-    initial_topic = "Artificial General Intelligence (AGI) is a risk to humanity"
-    st.session_state.topic = initial_topic
-    st.session_state.messages.append({
-        "role": "model", 
-        "content": f"I argue that {initial_topic}. Prove me wrong."
-    })
-
-
-def reset_game():
     st.session_state.messages = []
     st.session_state.user_hp = 100
     st.session_state.round = 1
     st.session_state.game_over = False
-    st.session_state.messages.append({
-        "role": "model", 
-        "content": f"I argue that {st.session_state.topic}. Prove me wrong."
-    })
-    st.rerun()
+    st.session_state.last_feedback = "Welcome. Configure settings to start."
+    st.session_state.started = False
+    # Init Radar Data
+    st.session_state.radar_data = {
+        "Logic": 50, "Relevance": 50, "Evidence": 50, "Civility": 50, "Conciseness": 50
+    }
+
+# --- SIDEBAR ---
 with st.sidebar:
-    st.title("🛡️ Player Stats")
-    hp = st.session_state.user_hp
-    hp_color = "🟢" if hp > 70 else "🟡" if hp > 30 else "🔴"
-    st.write(f"**Logic Integrity:** {hp}/100 {hp_color}")
-    st.progress(hp / 100)
+    st.title("⚙️ Dojo Settings")
     
-    st.divider()
+    # 1. Configuration
+    persona = st.selectbox("Opponent Persona:", 
+        ["Logical Vulcan", "Aggressive Troll", "Socratic Teacher", "Devil's Advocate", "The Bureaucrat"])
     
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Round", st.session_state.round)
-    with col2:
-        status = "Alive" if not st.session_state.game_over else "Defeated"
-        st.metric("Status", status)
-
-    st.divider()
-    st.markdown("### 🧠 Coach's Whisper")
-    st.info(st.session_state.last_feedback)
+    difficulty = st.selectbox("Difficulty Level:", 
+        ["Easy", "Medium", "Hard", "God Mode"])
+        
+    topic_input = st.text_input("Topic:", "AI will replace doctors")
     
-    if st.button("🔄 New Debate", use_container_width=True):
-        reset_game()
+    # 2. Start Button
+    if st.button("🔥 Enter Arena", use_container_width=True):
+        st.session_state.messages = []
+        st.session_state.user_hp = 100
+        st.session_state.round = 1
+        st.session_state.game_over = False
+        st.session_state.topic = topic_input
+        st.session_state.persona = persona
+        st.session_state.difficulty = difficulty
+        st.session_state.started = True
+        
+        # Get Opening
+        with st.spinner("Opponent is preparing..."):
+            try:
+                res = requests.post(f"{API_URL}/opening", json={"topic": topic_input, "persona": persona})
+                intro_msg = res.json()["opening"] if res.status_code == 200 else "Let's debate."
+            except:
+                intro_msg = "Let's debate."
+        st.session_state.messages.append({"role": "model", "content": intro_msg})
+        st.rerun()
 
+    # 3. Stats & Charts
+    if st.session_state.started:
+        st.divider()
+        st.metric("HP", f"{st.session_state.user_hp}/100")
+        st.progress(st.session_state.user_hp / 100)
+        
+        # RADAR CHART VISUALIZATION
+        st.subheader("📊 Skill Analysis")
+        df = pd.DataFrame(dict(
+            r=[st.session_state.radar_data[k] for k in st.session_state.radar_data],
+            theta=list(st.session_state.radar_data.keys())
+        ))
+        fig = px.line_polar(df, r='r', theta='theta', line_close=True, range_r=[0,100])
+        fig.update_layout(margin=dict(t=20, b=20, l=20, r=20), paper_bgcolor="rgba(0,0,0,0)", font_color="white")
+        fig.update_traces(fill='toself', line_color='#00FF41')
+        st.plotly_chart(fig, use_container_width=True)
+        
+        st.info(f"Coach: {st.session_state.last_feedback}")
 
+# --- MAIN UI ---
 st.title("⚔️ AI Debate Arena")
-st.caption(f"Topic: {st.session_state.topic}")
 
+if not st.session_state.started:
+    st.info("👈 Configure your opponent and difficulty to begin.")
+    st.stop()
 
 if st.session_state.user_hp <= 0:
-    st.error("💀 GAME OVER. Your logic crumbled under pressure.")
-    if st.button("Try Again?"):
-        reset_game()
+    st.error("💀 GAME OVER.")
+    if st.button("Restart"):
+        st.session_state.started = False
+        st.rerun()
     st.stop()
+
+# Chat History
 for msg in st.session_state.messages:
-    avatar = "👤" if msg["role"] == "user" else "🤖"
-    with st.chat_message(msg["role"], avatar=avatar):
+    with st.chat_message(msg["role"], avatar="👤" if msg["role"] == "user" else "🤖"):
         st.write(msg["content"])
+
+# --- GAME LOOP ---
 if prompt := st.chat_input("Your argument..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user", avatar="👤"):
-        st.write(prompt)
+    with st.chat_message("user", avatar="👤"): st.write(prompt)
 
-    
+    # ANALYSIS
     try:
-        with st.spinner("⚖️ Judging logic..."):
-            
-            analyze_res = requests.post(
-                f"{API_URL}/analyze",
-                json={"user_argument": prompt} 
-            )
-            
-            if analyze_res.status_code == 200:
-                data = analyze_res.json()
+        with st.spinner("Analyzing Skills..."):
+            res = requests.post(f"{API_URL}/analyze", json={"user_argument": prompt, "topic": st.session_state.topic})
+            if res.status_code == 200:
+                data = res.json()
                 
-               
-                score = data.get("logic_score", 50)
+                # Update Radar Data
+                st.session_state.radar_data = {
+                    "Logic": data["logic_score"],
+                    "Relevance": data["relevance_score"],
+                    "Evidence": data["evidence_score"],
+                    "Civility": data["civility_score"],
+                    "Conciseness": data["conciseness_score"]
+                }
+                
+                st.session_state.last_feedback = data.get("coaching_tip", "")
+                
+                # Damage Logic (Based on Logic & Relevance)
                 damage = 0
-                
-                if score < 50:
-                    damage = (50 - score)
-                    st.toast(f"💥 Weak Logic! Took {damage} damage!", icon="💥")
-                    st.session_state.user_hp = max(0, st.session_state.user_hp - damage)
-                elif score > 85:
-                    heal = 10
-                    st.toast(f"✨ Critical Point! Restored {heal} HP!", icon="✨")
-                    st.session_state.user_hp = min(100, st.session_state.user_hp + heal)
-                
-                
-                st.session_state.last_feedback = data.get("coaching_tip", "Keep going!")
-                
-                
-                fallacies = data.get("fallacies", [])
-                if fallacies:
-                    for f in fallacies:
-                        st.toast(f"🚩 Fallacy: {f}", icon="🚩")
-                        st.session_state.user_hp -= 5 
+                if data["relevance_score"] < 50:
+                    damage += 20
+                    st.toast("🚫 Off-Topic!", icon="🚫")
+                if data["logic_score"] < 50:
+                    damage += 10
+                    st.toast("📉 Weak Logic", icon="📉")
+                if data["civility_score"] < 40:
+                    damage += 10
+                    st.toast("🤬 Rude!", icon="🤬")
 
-    except Exception as e:
-        st.error(f"Referee Error: {e}")
+                st.session_state.user_hp = max(0, st.session_state.user_hp - damage)
+    except:
+        st.error("Analysis Failed")
 
-
+    # OPPONENT REBUTTAL
     if st.session_state.user_hp > 0:
-        try:
-            with st.chat_message("assistant", avatar="🤖"):
-                message_placeholder = st.empty()
-                full_response = ""
-                
-                with st.spinner("🤖 Formulating rebuttal..."):
-                    debate_res = requests.post(
-                        f"{API_URL}/debate",
-                        json={
-                            "topic": st.session_state.topic,
-                            "user_argument": prompt,
-                            "conversation_history": st.session_state.messages
-                        }
-                    )
-                    
-                    if debate_res.status_code == 200:
-                        full_response = debate_res.json()["rebuttal"]
-                        
-                
-                        for i in range(len(full_response)):
-                            message_placeholder.markdown(full_response[:i+1] + "▌")
-                            time.sleep(0.01) 
-                        message_placeholder.markdown(full_response)
-            
-            st.session_state.messages.append({"role": "model", "content": full_response})
-            st.session_state.round += 1
-            st.rerun()
-
-        except Exception as e:
-            st.error(f"Opponent Error: {e}")
+        with st.chat_message("assistant", avatar="🤖"):
+            placeholder = st.empty()
+            res = requests.post(f"{API_URL}/debate", json={
+                "topic": st.session_state.topic, 
+                "user_argument": prompt, 
+                "conversation_history": st.session_state.messages, 
+                "persona": st.session_state.persona,
+                "difficulty": st.session_state.difficulty
+            })
+            if res.status_code == 200:
+                reply = res.json()["rebuttal"]
+                placeholder.markdown(reply)
+                st.session_state.messages.append({"role": "model", "content": reply})
+                st.rerun() # Refresh to update chart
