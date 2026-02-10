@@ -44,12 +44,12 @@ class DebateEngine:
     def __init__(self):
         try:
             self.llm = ChatGoogleGenerativeAI(
-                model="gemini-2.5-flash",  # ✅ FIXED: Correct Model Name
+                model="gemini-2.5-flash", 
                 google_api_key=GOOGLE_API_KEY,
                 temperature=0.7
             )
         except Exception as e:
-            st.error(f"Setup Error: {e}")
+            st.error(f"API Error: {e}")
 
     def generate_opening(self, topic: str, persona: str, stance: str):
         template = """
@@ -62,9 +62,8 @@ class DebateEngine:
             prompt = ChatPromptTemplate.from_template(template)
             chain = prompt | self.llm
             return chain.invoke({"topic": topic, "persona": persona, "stance": stance}).content
-        except Exception as e:
-            st.error(f"Opening Error: {e}") 
-            return "Let's debate (Error occurred)."
+        except:
+            return "Let's debate."
 
     def generate_rebuttal(self, topic: str, argument: str, history: list, persona: str, difficulty: str, stance: str):
         history_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in history[-5:]])
@@ -84,8 +83,7 @@ class DebateEngine:
                 "role": persona, "difficulty": difficulty, "topic": topic, 
                 "history": history_text, "argument": argument, "stance": stance
             }).content
-        except Exception as e:
-            st.error(f"Rebuttal Error: {e}")
+        except:
             return "I disagree."
 
     def judge_turn(self, topic: str, user_arg: str, ai_arg: str):
@@ -178,9 +176,6 @@ with st.sidebar:
         
         # AI HP
         st.write(f"**Opponent ({persona}):** {st.session_state.ai_hp}/100")
-        st.markdown(f"""
-        <style>.stProgress .st-bo {{ background-color: red; }}</style>
-        """, unsafe_allow_html=True)
         st.progress(st.session_state.ai_hp / 100)
         
         st.divider()
