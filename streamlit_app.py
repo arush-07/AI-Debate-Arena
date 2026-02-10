@@ -136,7 +136,7 @@ if "ai_side" not in st.session_state:
 
 # --- SIDEBAR ---
 with st.sidebar:
-    st.title("⚙️ Dojo Settings")
+    st.title("⚙️ Debate Settings")
     
     # 1. Topic
     topic = st.text_input("Topic:", "AI will replace doctors")
