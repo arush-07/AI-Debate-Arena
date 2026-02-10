@@ -179,7 +179,7 @@ with st.sidebar:
         st.progress(st.session_state.ai_hp / 100)
         
         st.divider()
-        if st.button(" QUIT ❌", type="primary", use_container_width=True):
+        if st.button(" QUIT ✖️", type="primary", use_container_width=True):
             st.session_state.user_hp = 0 # Force end
             st.rerun()
 
