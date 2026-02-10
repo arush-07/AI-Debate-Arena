@@ -60,7 +60,9 @@ class DebateEngine:
         """
         try:
             prompt = ChatPromptTemplate.from_template(template)
-            return self.llm.invoke(prompt.format_messages(topic=topic, persona=persona, stance=stance)).content
+            chain = prompt | self.llm
+            response = chain.invoke({"topic": topic, "persona": persona, "stance": stance})
+            return response.content
         except:
             return "Let's debate."
 
@@ -77,10 +79,12 @@ class DebateEngine:
         """
         try:
             prompt = ChatPromptTemplate.from_template(template)
-            return self.llm.invoke(prompt.format_messages(
-                role=persona, difficulty=difficulty, topic=topic, 
-                history=history_text, argument=argument, stance=stance
-            )).content
+            chain = prompt | self.llm
+            response = chain.invoke({
+                "role": persona, "difficulty": difficulty, "topic": topic, 
+                "history": history_text, "argument": argument, "stance": stance
+            })
+            return response.content
         except:
             return "I disagree."
 
@@ -102,9 +106,16 @@ class DebateEngine:
         try:
             structured_llm = self.llm.with_structured_output(TurnScore)
             prompt = ChatPromptTemplate.from_template(template)
-            return prompt | structured_llm | (lambda x: x.invoke({"topic": topic, "user_arg": user_arg, "ai_arg": ai_arg}))
-        except:
-            return TurnScore(user_logic=50, user_relevance=50, ai_logic=50, ai_relevance=50, winner="draw", reasoning="Error")
+            # ✅ FIX: Explicitly run the chain
+            chain = prompt | structured_llm
+            return chain.invoke({"topic": topic, "user_arg": user_arg, "ai_arg": ai_arg})
+        except Exception as e:
+            # Fallback object if AI fails
+            return TurnScore(
+                user_logic=50, user_relevance=50, 
+                ai_logic=50, ai_relevance=50, 
+                winner="draw", reasoning=f"Judge Error: {str(e)}"
+            )
 
     def generate_final_report(self, history: list, topic: str):
         # Analyzes the whole match
@@ -120,7 +131,9 @@ class DebateEngine:
         try:
             structured_llm = self.llm.with_structured_output(FinalAnalysis)
             prompt = ChatPromptTemplate.from_template(template)
-            return prompt | structured_llm | (lambda x: x.invoke({"history": history_text, "topic": topic}))
+            # ✅ FIX: Explicitly run the chain
+            chain = prompt | structured_llm
+            return chain.invoke({"history": history_text, "topic": topic})
         except:
             return None
 
