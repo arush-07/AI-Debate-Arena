@@ -1,7 +1,6 @@
 import streamlit as st
 import uuid
-import pandas as pd
-import plotly.express as px
+import time
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
@@ -267,5 +266,5 @@ if prompt := st.chat_input("Your argument..."):
             st.session_state.turn_log.append(score)
             
             # Force UI Refresh for HP Bars
-            time.sleep(0.5) 
+            time.sleep(1) 
             st.rerun()
