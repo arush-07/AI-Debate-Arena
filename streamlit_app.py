@@ -44,12 +44,12 @@ class DebateEngine:
     def __init__(self):
         try:
             self.llm = ChatGoogleGenerativeAI(
-                model="gemini-2.5-flash", 
+                model="gemini-2.5-flash",  # ✅ FIXED: Correct Model Name
                 google_api_key=GOOGLE_API_KEY,
                 temperature=0.7
             )
         except Exception as e:
-            st.error(f"API Error: {e}")
+            st.error(f"Setup Error: {e}")
 
     def generate_opening(self, topic: str, persona: str, stance: str):
         template = """
@@ -62,8 +62,9 @@ class DebateEngine:
             prompt = ChatPromptTemplate.from_template(template)
             chain = prompt | self.llm
             return chain.invoke({"topic": topic, "persona": persona, "stance": stance}).content
-        except:
-            return "Let's debate."
+        except Exception as e:
+            st.error(f"Opening Error: {e}") 
+            return "Let's debate (Error occurred)."
 
     def generate_rebuttal(self, topic: str, argument: str, history: list, persona: str, difficulty: str, stance: str):
         history_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in history[-5:]])
@@ -83,7 +84,8 @@ class DebateEngine:
                 "role": persona, "difficulty": difficulty, "topic": topic, 
                 "history": history_text, "argument": argument, "stance": stance
             }).content
-        except:
+        except Exception as e:
+            st.error(f"Rebuttal Error: {e}")
             return "I disagree."
 
     def judge_turn(self, topic: str, user_arg: str, ai_arg: str):
@@ -150,7 +152,7 @@ with st.sidebar:
     with col2: difficulty = st.selectbox("Difficulty:", ["Easy", "Medium", "Hard"])
     ai_side = st.radio("AI's Stance:", ["AGAINST", "IN FAVOUR"], index=0)
     
-    if st.button("Start Debate 🔥 ", use_container_width=True):
+    if st.button("🔥 Start Debate", use_container_width=True):
         st.session_state.messages = []
         st.session_state.user_hp = 100
         st.session_state.ai_hp = 100
@@ -168,7 +170,7 @@ with st.sidebar:
     # --- LIVE SCOREBOARD ---
     if st.session_state.started:
         st.divider()
-        st.subheader("Live Health 🛡️ ")
+        st.subheader("🛡️ Live Health")
         
         # User HP
         st.write(f"**You:** {st.session_state.user_hp}/100")
@@ -176,10 +178,13 @@ with st.sidebar:
         
         # AI HP
         st.write(f"**Opponent ({persona}):** {st.session_state.ai_hp}/100")
+        st.markdown(f"""
+        <style>.stProgress .st-bo {{ background-color: red; }}</style>
+        """, unsafe_allow_html=True)
         st.progress(st.session_state.ai_hp / 100)
         
         st.divider()
-        if st.button(" QUIT ✖️", type="primary", use_container_width=True):
+        if st.button("🏁 End & Analyze", type="primary", use_container_width=True):
             st.session_state.user_hp = 0 # Force end
             st.rerun()
 
