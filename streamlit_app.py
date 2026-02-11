@@ -6,7 +6,6 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 from typing import List
 
-# --- CONFIGURATION ---
 st.set_page_config(page_title="AI Debate Arena", page_icon="⚔️", layout="wide")
 
 # --- CSS STYLING ---
@@ -18,7 +17,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- API KEY SETUP ---
 try:
     GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 except:
@@ -108,7 +106,7 @@ class DebateEngine:
             chain = prompt | structured_llm
             return chain.invoke({"topic": topic, "user_arg": user_arg, "ai_arg": ai_arg})
         except Exception as e:
-            # Fallback object
+            
             return TurnScore(
                 user_logic=50, user_relevance=50, 
                 ai_logic=50, ai_relevance=50, 
@@ -131,7 +129,7 @@ class DebateEngine:
 
 engine = DebateEngine()
 
-# --- SESSION STATE ---
+
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
     st.session_state.messages = []
@@ -151,7 +149,7 @@ with st.sidebar:
     with col2: difficulty = st.selectbox("Difficulty:", ["Easy", "Medium", "Hard"])
     ai_side = st.radio("AI's Stance:", ["AGAINST", "IN FAVOUR"], index=0)
     
-    if st.button("🔥 Start Debate", use_container_width=True):
+    if st.button("Start Debate 🔥 ", use_container_width=True):
         st.session_state.messages = []
         st.session_state.user_hp = 100
         st.session_state.ai_hp = 100
@@ -169,7 +167,7 @@ with st.sidebar:
     # --- LIVE SCOREBOARD ---
     if st.session_state.started:
         st.divider()
-        st.subheader("🛡️ Live Health")
+        st.subheader("Live Health 🛡️ ")
         
         # User HP
         st.write(f"**You:** {st.session_state.user_hp}/100")
@@ -183,7 +181,7 @@ with st.sidebar:
         st.progress(st.session_state.ai_hp / 100)
         
         st.divider()
-        if st.button("🏁 End & Analyze", type="primary", use_container_width=True):
+        if st.button("QUIT ☠️", type="primary", use_container_width=True):
             st.session_state.user_hp = 0 # Force end
             st.rerun()
 
