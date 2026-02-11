@@ -42,3 +42,55 @@ AI-DEBATE-ARENA/
 ├── streamlit_app.py    # Main application logic (Frontend + AI Backend)
 ├── requirements.txt    # List of project dependencies
 └── README.md           # Project documentation
+```
+
+```bash
+git clone https://github.com/arush-07/AI-DEBATE-ARENA.git
+cd AI-DEBATE-ARENA
+```
+
+---
+
+## 2️⃣ Install Dependencies
+
+Make sure you have **Python 3.9+** installed.
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## 3️⃣ Set Up Environment Variables
+
+You need a **Google Gemini API Key**.
+
+### Option 1: Set as Environment Variable (Recommended)
+
+**Windows (PowerShell):**
+```powershell
+setx GOOGLE_API_KEY "your_api_key_here"
+```
+
+**Mac/Linux:**
+```bash
+export GOOGLE_API_KEY="your_api_key_here"
+```
+
+### Option 2: Create a `.env` File
+
+Create a `.env` file in the root directory:
+
+```
+GOOGLE_API_KEY=your_api_key_here
+```
+
+---
+
+## 4️⃣ Run the Application
+
+```bash
+streamlit run streamlit_app.py
+```
+
+Your app will open automatically in your browser 
