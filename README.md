@@ -43,7 +43,7 @@ AI-DEBATE-ARENA/
 ├── requirements.txt    # List of project dependencies
 └── README.md           # Project documentation
 ```
-
+## How to Clone
 ```bash
 git clone https://github.com/arush-07/AI-DEBATE-ARENA.git
 cd AI-DEBATE-ARENA
@@ -51,7 +51,7 @@ cd AI-DEBATE-ARENA
 
 ---
 
-## 2️⃣ Install Dependencies
+## Install Dependencies
 
 Make sure you have **Python 3.9+** installed.
 
@@ -61,7 +61,7 @@ pip install -r requirements.txt
 
 ---
 
-## 3️⃣ Set Up Environment Variables
+## Set Up Environment Variables
 
 You need a **Google Gemini API Key**.
 
@@ -87,10 +87,15 @@ GOOGLE_API_KEY=your_api_key_here
 
 ---
 
-## 4️⃣ Run the Application
+## Run the Application
 
 ```bash
 streamlit run streamlit_app.py
 ```
 
 Your app will open automatically in your browser 
+
+## Made By
+Arush pradhan
+Drishti Verma
+Aarav Parikh
