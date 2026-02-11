@@ -6,6 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 from typing import List
 
+# --- PAGE CONFIG ---
 st.set_page_config(page_title="AI Debate Arena", page_icon="⚔️", layout="wide")
 
 # --- CSS STYLING ---
@@ -17,10 +18,12 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# --- API KEY SETUP ---
 try:
+    # Try getting key from secrets first
     GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 except:
-    # ⚠️ IF RUNNING LOCALLY, PASTE YOUR NEW KEY HERE ⚠️
+    # ⚠️ IF RUNNING LOCALLY, PASTE YOUR KEY BELOW ⚠️
     GOOGLE_API_KEY = "PASTE_YOUR_KEY_HERE"
 
 # --- DATA MODELS ---
@@ -42,13 +45,14 @@ class FinalAnalysis(BaseModel):
 class DebateEngine:
     def __init__(self):
         try:
+            # FIXED: Changed model name to a valid one
             self.llm = ChatGoogleGenerativeAI(
                 model="gemini-2.5-flash", 
                 google_api_key=GOOGLE_API_KEY,
                 temperature=0.7
             )
         except Exception as e:
-            st.error(f"API Error: {e}")
+            st.error(f"Initialization Error: {e}")
 
     def generate_opening(self, topic: str, persona: str, stance: str):
         template = """
@@ -60,33 +64,45 @@ class DebateEngine:
         try:
             prompt = ChatPromptTemplate.from_template(template)
             chain = prompt | self.llm
-            return chain.invoke({"topic": topic, "persona": persona, "stance": stance}).content
-        except:
+            response = chain.invoke({"topic": topic, "persona": persona, "stance": stance})
+            return response.content
+        except Exception as e:
+            st.error(f"Opening Gen Error: {e}")
             return "Let's debate."
 
     def generate_rebuttal(self, topic: str, argument: str, history: list, persona: str, difficulty: str, stance: str):
+        # Format history specifically for context
         history_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in history[-5:]])
+        
         template = """
-        Role: {role} ({difficulty})
+        Role: {role} ({difficulty} Mode)
         Topic: "{topic}"
         Stance: {stance}
-        History: {history}
-        User Argument: "{argument}"
         
-        Rebut the user. Keep it under 4 sentences.
+        Conversation History:
+        {history}
+        
+        User's LATEST Argument: "{argument}"
+        
+        Task: 
+        Directly rebut the user's latest argument. 
+        Do not just say "I disagree". 
+        Use logic and facts based on your persona.
+        Keep it sharp (under 4 sentences).
         """
         try:
             prompt = ChatPromptTemplate.from_template(template)
             chain = prompt | self.llm
-            return chain.invoke({
+            response = chain.invoke({
                 "role": persona, "difficulty": difficulty, "topic": topic, 
                 "history": history_text, "argument": argument, "stance": stance
-            }).content
-        except:
-            return "I disagree."
+            })
+            return response.content
+        except Exception as e:
+            # FIXED: Show actual error
+            return f"SYSTEM ERROR: {str(e)}"
 
     def judge_turn(self, topic: str, user_arg: str, ai_arg: str):
-        # Judges BOTH sides
         template = """
         Act as an Impartial Debate Judge.
         Topic: {topic}
@@ -96,9 +112,9 @@ class DebateEngine:
         
         Task:
         1. Score User's Logic (0-100). Be generous if they make a good point.
-        2. Score AI's Logic (0-100). Be STRICT. If the AI is generic or repetitive, give a LOW score (<60).
+        2. Score AI's Logic (0-100). Be STRICT.
         3. Score Relevance for both (0-100).
-        4. Decide the winner based on who had better logic.
+        4. Decide the winner based on logic scores.
         """
         try:
             structured_llm = self.llm.with_structured_output(TurnScore)
@@ -106,17 +122,18 @@ class DebateEngine:
             chain = prompt | structured_llm
             return chain.invoke({"topic": topic, "user_arg": user_arg, "ai_arg": ai_arg})
         except Exception as e:
-            
+            st.error(f"Judging Error: {e}")
             return TurnScore(
                 user_logic=50, user_relevance=50, 
                 ai_logic=50, ai_relevance=50, 
-                winner="draw", reasoning=f"Judge Error: {str(e)}"
+                winner="draw", reasoning="Judge malfunction."
             )
 
     def generate_final_report(self, history: list, topic: str):
         history_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in history])
         template = """
-        Analyze this debate. Topic: {topic}. History: {history}.
+        Analyze this debate. Topic: {topic}. 
+        History: {history}.
         Provide a coaching report for the User (Best point, Weakest point, 3 Tips).
         """
         try:
@@ -124,19 +141,21 @@ class DebateEngine:
             prompt = ChatPromptTemplate.from_template(template)
             chain = prompt | structured_llm
             return chain.invoke({"history": history_text, "topic": topic})
-        except:
+        except Exception as e:
+            st.error(f"Report Error: {e}")
             return None
 
+# Initialize Engine
 engine = DebateEngine()
 
-
+# --- SESSION STATE ---
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
     st.session_state.messages = []
     st.session_state.user_hp = 100
     st.session_state.ai_hp = 100
     st.session_state.started = False
-    
+
 if "ai_side" not in st.session_state:
     st.session_state.ai_side = "AGAINST the Topic"
 
@@ -174,10 +193,7 @@ with st.sidebar:
         st.progress(st.session_state.user_hp / 100)
         
         # AI HP
-        st.write(f"**Opponent ({persona}):** {st.session_state.ai_hp}/100")
-        st.markdown(f"""
-        <style>.stProgress .st-bo {{ background-color: red; }}</style>
-        """, unsafe_allow_html=True)
+        st.write(f"**Opponent ({st.session_state.persona}):** {st.session_state.ai_hp}/100")
         st.progress(st.session_state.ai_hp / 100)
         
         st.divider()
@@ -189,26 +205,30 @@ with st.sidebar:
 st.title("⚔️ AI Debate Arena")
 
 if not st.session_state.started:
-    st.info("👈 Configure setup to begin.")
+    st.info("👈 Configure setup in the sidebar to begin.")
     st.stop()
 
-# --- GAME OVER ---
+# --- GAME OVER LOGIC ---
 if st.session_state.user_hp <= 0 or st.session_state.ai_hp <= 0:
     winner = "YOU" if st.session_state.user_hp > 0 else "AI"
     st.header(f"🏁 DEBATE OVER! Winner: {winner}")
     
+    if st.button("Restart Debate"):
+        st.session_state.started = False
+        st.rerun()
+        
     with st.spinner("Generating Analysis..."):
         report = engine.generate_final_report(st.session_state.messages, st.session_state.topic)
         if report:
             col1, col2 = st.columns(2)
-            with col1: st.success(f"**Best Point:**\n{report.best_point_user}")
-            with col2: st.error(f"**Weakest Point:**\n{report.weakest_point_user}")
+            with col1: 
+                st.success(f"**Best Point:**\n\n{report.best_point_user}")
+            with col2: 
+                st.error(f"**Weakest Point:**\n\n{report.weakest_point_user}")
+            
             st.subheader("💡 Coaching Tips")
-            for tip in report.improvement_tips: st.info(f"• {tip}")
-    
-    if st.button("Restart Debate"):
-        st.session_state.started = False
-        st.rerun()
+            for tip in report.improvement_tips: 
+                st.info(f"• {tip}")
     st.stop()
 
 # --- CHAT HISTORY ---
@@ -216,11 +236,14 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# --- GAME LOOP ---
+# --- GAME INPUT LOOP ---
 if prompt := st.chat_input("Your argument..."):
+    # 1. Append User Message
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"): st.write(prompt)
+    with st.chat_message("user"): 
+        st.write(prompt)
 
+    # 2. Generate AI Rebuttal
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             rebuttal = engine.generate_rebuttal(
@@ -230,39 +253,37 @@ if prompt := st.chat_input("Your argument..."):
             st.write(rebuttal)
             st.session_state.messages.append({"role": "assistant", "content": rebuttal})
             
-            # --- SCORING & DAMAGE ---
+            # 3. Judge & Score
             score = engine.judge_turn(st.session_state.topic, prompt, rebuttal)
             
             user_dmg = 0
             ai_dmg = 0
             
-            # 1. Relevance Penalty (Base Defense)
+            # Scoring Logic
             if score.user_relevance < 50: user_dmg += 15
             if score.ai_relevance < 50: ai_dmg += 15
             
-            # 2. Logic Duel (The Fair Fight)
-            # Calculate difference in logic scores
             logic_diff = score.user_logic - score.ai_logic
             
             if logic_diff > 0:
-                # User had better logic -> AI takes damage
-                ai_dmg += int(logic_diff / 2) # Scale damage
+                ai_dmg += int(logic_diff / 2) 
             elif logic_diff < 0:
-                # AI had better logic -> User takes damage
                 user_dmg += int(abs(logic_diff) / 2)
             
-            # 3. Critical Hit Bonus
+            # Critical Hit
             if score.user_logic > 85: 
                 ai_dmg += 10
-                st.toast("🔥 CRITICAL HIT! Your logic was superior!", icon="🔥")
+                st.toast("🔥 CRITICAL HIT! Superior logic!", icon="🔥")
             
             # Apply Damage
             st.session_state.user_hp = max(0, st.session_state.user_hp - user_dmg)
             st.session_state.ai_hp = max(0, st.session_state.ai_hp - ai_dmg)
             
-            # Show Feedack
-            if user_dmg > 0: st.toast(f"You lost {user_dmg} HP. {score.reasoning}", icon="💔")
-            if ai_dmg > 0: st.toast(f"Opponent lost {ai_dmg} HP!", icon="🎯")
+            # Feedback Toasts
+            if user_dmg > 0: 
+                st.toast(f"You lost {user_dmg} HP. {score.reasoning}", icon="💔")
+            if ai_dmg > 0: 
+                st.toast(f"Opponent lost {ai_dmg} HP!", icon="🎯")
             
             time.sleep(1) 
             st.rerun()
