@@ -8,7 +8,7 @@
 
 <br />
 
-> **A Next-Gen Gamified Debate Simulator built for the TechSprint GDG MUJ hackathon.**
+> **A Next-Gen Gamified Debate Simulator built for the Dev Heat IIIT Surat hackathon.**
 
 ---
 
@@ -42,43 +42,3 @@ AI-DEBATE-ARENA/
 ├── streamlit_app.py    # Main application logic (Frontend + AI Backend)
 ├── requirements.txt    # List of project dependencies
 └── README.md           # Project documentation
-🎥 Demo
-Check out our project in action below
-
-🚀 How to Clone and Run Locally
-Follow these steps to get the project up and running on your local machine.
-
-1. Clone the Repository
-Bash
-git clone [https://github.com/arush-07/AI-DEBATE-ARENA.git](https://github.com/arush-07/AI-DEBATE-ARENA.git)
-cd AI-DEBATE-ARENA
-2. Install Dependencies
-Make sure you have Python installed. Then run:
-
-Bash
-pip install -r requirements.txt
-3. Set Up Environment Variables
-You need a Google Gemini API Key. You can either paste it directly into the code (for local testing) or set it up securely in a secrets file.
-
-Bash
-GOOGLE_API_KEY=your_api_key_here
-4. Run the Application
-You only need one command to launch the full arena.
-
-🔹 Launch the Frontend
-Open your terminal and run the Streamlit dashboard.
-
-Bash
-streamlit run streamlit_app.py
-
-Made by:
-
-Arush Pradhan
-
-Drishti Verma
-
-Aarav Parikh
-
-<div align="center">
-<i>Built for the Dev Heat IIIT Surat hackathon.</i>
-</div>
