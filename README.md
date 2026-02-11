@@ -3,8 +3,7 @@
 <div align="center">
   <img src="https://img.shields.io/badge/Made%20with-Python-blue?style=for-the-badge&logo=python" alt="Python">
   <img src="https://img.shields.io/badge/Frontend-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit" alt="Streamlit">
-  <img src="https://img.shields.io/badge/AI-Gemini%201.5-orange?style=for-the-badge&logo=google" alt="Gemini">
-  <img src="https://img.shields.io/badge/Team-CS%20on%20Top-green?style=for-the-badge" alt="Team CS on Top">
+  <img src="https://img.shields.io/badge/AI-Gemini%202.5-orange?style=for-the-badge&logo=google" alt="Gemini">
 </div>
 
 <br />
