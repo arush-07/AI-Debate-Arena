@@ -95,7 +95,13 @@ streamlit run streamlit_app.py
 
 Your app will open automatically in your browser 
 
-## Made By
-Arush pradhan
-Drishti Verma
-Aarav Parikh
+##  Team Bitwise
+Made by:
+
+- **Arush Pradhan**
+- **Drishti Verma**
+- **Aarav Parikh**
+
+<div align="center">
+  <i>Built for the IIIT Surat hackathon.</i>
+</div>
