@@ -19,12 +19,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- API KEY SETUP ---
-# ⚠️ CRITICAL: If running locally, paste your NEW key in the quotes below ⚠️
 try:
     GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 except:
-    # PASTE YOUR NEW KEY HERE FOR LOCAL TESTING
-    GOOGLE_API_KEY = "PASTE_YOUR_NEW_KEY_HERE"
+    # ⚠️ IF RUNNING LOCALLY, PASTE YOUR NEW KEY HERE ⚠️
+    GOOGLE_API_KEY = "PASTE_YOUR_KEY_HERE"
 
 # --- DATA MODELS ---
 class TurnScore(BaseModel):
@@ -46,12 +45,12 @@ class DebateEngine:
     def __init__(self):
         try:
             self.llm = ChatGoogleGenerativeAI(
-                model="gemini-2.5-flash",  # ✅ FIXED: Changed 2.5 to 1.5
+                model="gemini-2.5-flash", 
                 google_api_key=GOOGLE_API_KEY,
                 temperature=0.7
             )
         except Exception as e:
-            st.error(f"Setup Error: {e}")
+            st.error(f"API Error: {e}")
 
     def generate_opening(self, topic: str, persona: str, stance: str):
         template = """
@@ -64,9 +63,8 @@ class DebateEngine:
             prompt = ChatPromptTemplate.from_template(template)
             chain = prompt | self.llm
             return chain.invoke({"topic": topic, "persona": persona, "stance": stance}).content
-        except Exception as e:
-            st.error(f"Opening Error: {e}") 
-            return "Let's debate (Error occurred)."
+        except:
+            return "Let's debate."
 
     def generate_rebuttal(self, topic: str, argument: str, history: list, persona: str, difficulty: str, stance: str):
         history_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in history[-5:]])
@@ -86,8 +84,7 @@ class DebateEngine:
                 "role": persona, "difficulty": difficulty, "topic": topic, 
                 "history": history_text, "argument": argument, "stance": stance
             }).content
-        except Exception as e:
-            st.error(f"Rebuttal Error: {e}")
+        except:
             return "I disagree."
 
     def judge_turn(self, topic: str, user_arg: str, ai_arg: str):
@@ -246,11 +243,14 @@ if prompt := st.chat_input("Your argument..."):
             if score.ai_relevance < 50: ai_dmg += 15
             
             # 2. Logic Duel (The Fair Fight)
+            # Calculate difference in logic scores
             logic_diff = score.user_logic - score.ai_logic
             
             if logic_diff > 0:
-                ai_dmg += int(logic_diff / 2)
+                # User had better logic -> AI takes damage
+                ai_dmg += int(logic_diff / 2) # Scale damage
             elif logic_diff < 0:
+                # AI had better logic -> User takes damage
                 user_dmg += int(abs(logic_diff) / 2)
             
             # 3. Critical Hit Bonus
