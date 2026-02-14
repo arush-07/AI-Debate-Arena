@@ -1,5 +1,4 @@
-#  Team Bitwise - Dev Heat IIIT Surat
-
+# ⚔️ AI Debate Arena
 <div align="center">
   <img src="https://img.shields.io/badge/Made%20with-Python-blue?style=for-the-badge&logo=python" alt="Python">
   <img src="https://img.shields.io/badge/Frontend-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit" alt="Streamlit">
@@ -7,101 +6,83 @@
 </div>
 
 <br />
-
-> **A Next-Gen Gamified Debate Simulator built for the Dev Heat IIIT Surat hackathon.**
-
----
-
-##  About
-This project leverages the power of **Google Gemini 2.5 Flash** combined with **LangChain** to create a competitive, real-time debate simulator.
-
-The system is designed to gamify critical thinking by pitting users against adaptive AI personas. It processes arguments in real-time, evaluates them using a strictly impartial "AI Judge," and provides instant feedback via a "Health Point" (HP) system. By simulating high-stakes verbal combat, we demonstrate how GenAI can be used for educational reinforcement and logic training.
-
-**Key Features:**
-*  **Gamified Combat:** Users and AI have Health Bars; weak logic or irrelevance deals damage.
-*  **Adaptive Personas:** Debate against distinct personalities like a "Logical Vulcan" or "Aggressive Troll."
-*  **Real-time Judging:** Instant scoring of Logic, Relevance, and Civility for every turn.
-*  **Post-Match Analysis:** A comprehensive coaching report generated automatically after the match.
+A **Next-Gen Gamified Debate Simulator** built using **Streamlit + Google Gemini 2.5 Flash + LangChain**, designed to make critical thinking interactive, competitive, and multilingual.
 
 ---
 
-##  Technology Stack
-We used a modern tech stack focused on speed, interactivity, and AI reasoning:
+## 🚀 About
 
-* **Core Engine:** [LangChain](https://www.langchain.com/) (Orchestration & Prompt Chaining)
-* **Language:** Python
-* **Frontend:** Streamlit
-* **AI/LLM:** Google Gemini 2.5 Flash (via API)
-* **Validation:** Pydantic (Structured Output Parsing)
+**AI Debate Arena** transforms traditional debates into a **real-time gamified experience** where users battle AI opponents using logic and reasoning.
+
+The system leverages **Google Gemini 2.5 Flash** with **LangChain orchestration** to:
+- Generate arguments & rebuttals
+- Judge debates impartially
+- Provide structured feedback
+- Support multilingual debates 🎙️
+
+With features like **health points (HP), AI personas, voice input, and post-match analysis**, it simulates a **high-stakes debate battlefield**.
 
 ---
 
-##  Repo Structure
-```bash
+## 🎯 Key Features
+
+### ⚔️ Gamified Debate System
+- Health Points (HP) for both user and AI
+- Logical superiority = damage to opponent
+- Real-time feedback with crowd reactions
+
+### 🤖 Adaptive AI Personas
+Debate against unique personalities:
+- 🧠 Logical Vulcan  
+- 😏 Sarcastic Troll  
+- 📚 Philosopher  
+- 😈 Devil’s Advocate  
+
+### ⚖️ AI Judge System
+- Scores each turn based on:
+  - Logic
+  - Reasoning
+- Detects logical fallacies
+- Decides winner per round
+
+### 🗣️ Multilingual Support
+Debate in multiple languages:
+- English, Hindi, Gujarati, Marathi, Tamil, Telugu, Kannada, Punjabi
+
+### 🎤 Voice Input + AI Voice Output
+- Speak your arguments (speech-to-text via Gemini)
+- Listen to AI responses (text-to-speech using gTTS)
+
+### 📊 Post-Debate Analysis
+- Best argument 💎
+- Weakest argument 📉
+- Personalized improvement tips 💡
+
+### 🎬 AI vs AI Simulation Mode
+- Watch two AI personas debate autonomously
+- Great for learning argument styles
+
+### 📜 Downloadable Debate Logs
+- Export full debate history as `.txt`
+
+---
+
+## 🧠 Technology Stack
+
+| Component | Technology |
+|----------|-----------|
+| **Frontend** | Streamlit |
+| **Backend Logic** | Python |
+| **LLM / AI** | Google Gemini 2.5 Flash |
+| **Orchestration** | LangChain |
+| **Validation** | Pydantic |
+| **Speech** | gTTS (Text-to-Speech) |
+| **Audio Processing** | Gemini API |
+
+---
+
+## 📁 Project Structure
 AI-DEBATE-ARENA/
-├── streamlit_app.py    # Main application logic (Frontend + AI Backend)
-├── requirements.txt    # List of project dependencies
-└── README.md           # Project documentation
-```
-## How to Clone
-```bash
-git clone https://github.com/arush-07/AI-DEBATE-ARENA.git
-cd AI-DEBATE-ARENA
-```
-
----
-
-## Install Dependencies
-
-Make sure you have **Python 3.9+** installed.
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## Set Up Environment Variables
-
-You need a **Google Gemini API Key**.
-
-### Option 1: Set as Environment Variable (Recommended)
-
-**Windows (PowerShell):**
-```powershell
-setx GOOGLE_API_KEY "your_api_key_here"
-```
-
-**Mac/Linux:**
-```bash
-export GOOGLE_API_KEY="your_api_key_here"
-```
-
-### Option 2: Create a `.env` File
-
-Create a `.env` file in the root directory:
-
-```
-GOOGLE_API_KEY=your_api_key_here
-```
-
----
-
-## Run the Application
-
-```bash
-streamlit run streamlit_app.py
-```
-
-Your app will open automatically in your browser 
-
-##  Team Bitwise
-Made by:
-
-- **Arush Pradhan**
-- **Drishti Verma**
-- **Aarav Parikh**
-
-<div align="center">
-  <i>Built for the IIIT Surat hackathon.</i>
-</div>
+├── streamlit_app.py # Main application (UI + AI logic)
+├── requirements.txt # Dependencies
+└── README.md # Project documentation
