@@ -171,7 +171,7 @@ if "session_id" not in st.session_state:
     st.session_state.topic_input = "Universal Basic Income" 
 
 with st.sidebar:
-    st.title("⚙️ Arena 10.0")
+    st.title("⚙️ Arena Setup")
     mode = st.radio("Mode:", ["User vs AI", "AI vs AI (Simulation)"])
     enable_audio = st.toggle("Enable AI Voice 🔊", value=True)
     
