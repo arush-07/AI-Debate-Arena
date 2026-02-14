@@ -2,6 +2,7 @@ import streamlit as st
 import uuid
 import time
 import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
 import random
 import hashlib
 from gtts import gTTS
@@ -37,7 +38,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- 🔐 AUTHENTICATION SETUP ---
-# In a real app, store these in st.secrets
 CREDENTIALS = {
     "admin": "password123",
     "player1": "debate2024"
@@ -64,6 +64,7 @@ if "authenticated" not in st.session_state:
 try:
     GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 except:
+    # REPLACE THIS WITH YOUR ACTUAL KEY IF RUNNING LOCALLY
     GOOGLE_API_KEY = "PASTE_YOUR_KEY_HERE"
 
 genai.configure(api_key=GOOGLE_API_KEY)
@@ -98,10 +99,20 @@ class FinalAnalysis(BaseModel):
 class DebateEngine:
     def __init__(self):
         try:
+            # --- SAFETY SETTINGS FIX (CRITICAL) ---
+            # Disables strict filters so the AI can debate aggressively in any language
+            safety_settings = {
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+            }
+
             self.llm = ChatGoogleGenerativeAI(
                 model="gemini-2.5-flash", 
                 google_api_key=GOOGLE_API_KEY,
-                temperature=0.8 
+                temperature=0.8,
+                safety_settings=safety_settings
             )
         except Exception as e:
             st.error(f"Initialization Error: {e}")
@@ -109,6 +120,7 @@ class DebateEngine:
     def speak(self, text, lang_code='en'):
         try:
             if not text: return None
+            # gTTS requires specific language codes
             tts = gTTS(text=text, lang=lang_code)
             fp = BytesIO()
             tts.write_to_fp(fp)
@@ -119,9 +131,9 @@ class DebateEngine:
         try:
             model = genai.GenerativeModel("gemini-2.5-flash")
             audio_bytes = audio_file.read()
-            prompt = f"Transcribe this audio exactly as spoken. The language is likely {language_name}."
+            prompt = f"Transcribe this audio exactly as spoken. The language is likely {language_name}. If it is silent or unclear, return nothing."
             response = model.generate_content([prompt, {"mime_type": "audio/mp3", "data": audio_bytes}])
-            return response.text
+            return response.text.strip()
         except Exception as e:
             st.error(f"Transcription Error: {e}")
             return None
@@ -170,6 +182,7 @@ class DebateEngine:
             if not res.content: return "..."
             return res.content
         except Exception as e: 
+            st.error(f"AI Generation Error: {e}")
             return f"Error responding in {language_name}."
 
     def judge_turn(self, topic, user_arg, ai_arg):
@@ -407,19 +420,23 @@ def main_game():
 
         final_prompt = None
         
-        # --- INPUT PROCESSING LOGIC ---
+        # --- INPUT PROCESSING LOGIC (FIXED FOR LOOPING) ---
         if text_input:
             final_prompt = text_input
         
         elif voice_input:
+            # 1. Read bytes to create a unique hash (Fingerprint)
             voice_input.seek(0)
             audio_data = voice_input.read()
-            voice_input.seek(0)
+            voice_input.seek(0) # Reset pointer so Transcriber can read it
             
             current_audio_hash = hashlib.md5(audio_data).hexdigest()
             
+            # 2. Compare with the last processed audio
             if current_audio_hash != st.session_state.last_audio_hash:
+                # It's NEW audio!
                 st.session_state.last_audio_hash = current_audio_hash
+                
                 with st.spinner("Transcribing..."):
                     transcribed = engine.transcribe_audio(voice_input, st.session_state.selected_lang_name)
                     if not transcribed:
@@ -427,10 +444,12 @@ def main_game():
                     else:
                         final_prompt = transcribed
             else:
+                # It's the SAME audio as before (loop prevention)
                 pass
 
         # --- Turn Execution ---
         if final_prompt:
+            # Double check to ensure we don't process the exact same text twice in a row
             if st.session_state.messages and st.session_state.messages[-1]['role'] == 'user' and st.session_state.messages[-1]['content'] == final_prompt:
                 pass 
             else:
@@ -576,6 +595,8 @@ if not st.session_state.authenticated:
             
             if submitted:
                 check_login(username, password)
+                
+    st.info("💡 **Demo Credentials:**\n\nUser: `admin` | Pass: `password123`")
 
 else:
     # If authenticated, run the main game function
