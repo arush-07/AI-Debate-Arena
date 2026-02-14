@@ -12,7 +12,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 from typing import List
 
-st.set_page_config(page_title="AI Debate Arena 10.0", page_icon="⚔️", layout="wide")
+st.set_page_config(page_title="AI Debate Arena", page_icon="⚔️", layout="wide")
 
 st.markdown("""
 <style>
@@ -199,7 +199,7 @@ with st.sidebar:
 
     if mode == "User vs AI" and st.session_state.started:
         st.divider()
-        if st.button("🏳️ Quit & Analyze", type="primary", use_container_width=True):
+        if st.button("QUIT ☠️", type="primary", use_container_width=True):
             st.session_state.user_hp = 0  
             st.rerun()
 
