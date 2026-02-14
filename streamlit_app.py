@@ -526,6 +526,7 @@ def main_game():
             
             prev_arg = opening
             progress_bar = st.progress(0, text="Debate in progress...")
+            
             for i in range(4):
                 progress_bar.progress((i + 1) / 4)
                 time.sleep(0.5) 
