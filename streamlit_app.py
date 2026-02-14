@@ -33,6 +33,18 @@ except:
 
 genai.configure(api_key=GOOGLE_API_KEY)
 
+# --- Language Configuration ---
+LANGUAGES = {
+    "English": "en",
+    "Hindi": "hi",
+    "Gujarati": "gu",
+    "Marathi": "mr",
+    "Tamil": "ta",
+    "Telugu": "te",
+    "Kannada": "kn",
+    "Punjabi": "pa"
+}
+
 class TurnScore(BaseModel):
     user_logic: int = Field(..., description="0-100 score for logic")
     ai_logic: int = Field(..., description="0-100 score for logic")
@@ -57,58 +69,72 @@ class DebateEngine:
         except Exception as e:
             st.error(f"Initialization Error: {e}")
 
-    def speak(self, text):
+    def speak(self, text, lang_code='en'):
         try:
             if not text: return None
-            tts = gTTS(text=text, lang='en')
+            # gTTS requires specific language codes
+            tts = gTTS(text=text, lang=lang_code)
             fp = BytesIO()
             tts.write_to_fp(fp)
             return fp
         except: return None
 
-    def transcribe_audio(self, audio_file):
+    def transcribe_audio(self, audio_file, language_name="English"):
         try:
             model = genai.GenerativeModel("gemini-2.5-flash")
             audio_bytes = audio_file.read()
-            prompt = "Transcribe this audio exactly as spoken."
+            # Hinting the language helps transcription accuracy
+            prompt = f"Transcribe this audio exactly as spoken. The language is likely {language_name}."
             response = model.generate_content([prompt, {"mime_type": "audio/mp3", "data": audio_bytes}])
             return response.text
         except: return None
 
-    def generate_opening(self, topic, persona, stance):
+    def generate_opening(self, topic, persona, stance, language_name):
         template = f"""
         You are {{persona}}. Topic: {{topic}}. Stance: {{stance}}.
-        Generate a sharp, provocative 2-sentence opening argument.
+        Target Language: {{language}}.
+        
+        Generate a sharp, provocative 2-sentence opening argument completely in {{language}}.
+        DO NOT use English unless the requested language is English.
         DO NOT be neutral. Pick a side and fight for it.
         """
         try:
             prompt = ChatPromptTemplate.from_template(template)
             chain = prompt | self.llm
-            res = chain.invoke({"persona": persona, "topic": topic, "stance": stance})
+            res = chain.invoke({"persona": persona, "topic": topic, "stance": stance, "language": language_name})
             return res.content
-        except: return "I am ready to debate this topic."
+        except: return "System Error: Could not generate opening."
 
-    def generate_rebuttal(self, topic, argument, history, persona, stance):
+    def generate_rebuttal(self, topic, argument, history, persona, stance, language_name):
         hist_text = "\n".join([f"{m['role']}: {m['content']}" for m in history[-4:]])
         template = f"""
         You are {{persona}}. Topic: {{topic}}. Stance: {{stance}}.
+        Target Language: {{language}}.
         History: {{hist_text}}
         Opponent says: "{{argument}}"
         
         TASK: Dissect the opponent's argument and provide a logical counter-point.
-        CONSTRAINT: Never say "I disagree". Instead, explain WHY they are wrong.
-        Keep it under 3 sentences.
+        CONSTRAINT: 
+        1. Write the response STRICTLY in {{language}}.
+        2. Never say "I disagree". Instead, explain WHY they are wrong.
+        3. Keep it under 3 sentences.
         """
         try:
             prompt = ChatPromptTemplate.from_template(template)
             chain = prompt | self.llm
-            res = chain.invoke({"persona": persona, "topic": topic, "stance": stance, "hist_text": hist_text, "argument": argument})
+            res = chain.invoke({
+                "persona": persona, 
+                "topic": topic, 
+                "stance": stance, 
+                "hist_text": hist_text, 
+                "argument": argument,
+                "language": language_name
+            })
        
-            if not res.content: return "That logic is flawed. Consider the economic implications."
+            if not res.content: return "..."
             return res.content
         except Exception as e: 
-     
-            return f"That's an interesting perspective, but have you considered the long-term data regarding {topic}?"
+            return f"Error responding in {language_name}."
 
     def judge_turn(self, topic, user_arg, ai_arg):
         template = f"""
@@ -117,6 +143,7 @@ class DebateEngine:
         AI: "{{ai_arg}}"
         
         Score logic (0-100) strictly based on facts and reasoning.
+        Even if the text is in a non-English language, analyze the LOGIC behind it.
         """
         try:
             structured = self.llm.with_structured_output(TurnScore)
@@ -125,23 +152,26 @@ class DebateEngine:
             return chain.invoke({"topic": topic, "user_arg": user_arg, "ai_arg": ai_arg})
         except: return TurnScore(user_logic=50, ai_logic=50, winner="draw", reasoning="Error", fallacies_detected="None")
 
-    def generate_report(self, history, topic):
+    def generate_report(self, history, topic, language_name):
         hist_text = "\n".join([f"{m['role']}: {m['content']}" for m in history])
         template = """
         Analyze the full debate history. Topic: {topic}.
         History: {history}
+        Target Language for output: {language}
         
         Task:
         1. Identify the Winner.
         2. Find the User's BEST point (quote it).
         3. Find the User's WEAKEST point (quote it).
         4. Provide 3 specific tips for the user to improve next time.
+        
+        IMPORTANT: Ensure the 'improvement_tips' and analysis are written in {language}.
         """
         try:
             structured = self.llm.with_structured_output(FinalAnalysis)
             prompt = ChatPromptTemplate.from_template(template)
             chain = prompt | structured
-            return chain.invoke({"history": hist_text, "topic": topic})
+            return chain.invoke({"history": hist_text, "topic": topic, "language": language_name})
         except: return None
 
 engine = DebateEngine()
@@ -169,9 +199,25 @@ if "session_id" not in st.session_state:
     st.session_state.last_processed = "" 
     st.session_state.audio_key = "audio_1"
     st.session_state.topic_input = "Universal Basic Income" 
+    st.session_state.selected_lang_name = "English" # Default
+    st.session_state.selected_lang_code = "en"
 
 with st.sidebar:
     st.title("⚙️ Arena Setup")
+    
+    # --- Language Selector ---
+    st.subheader("🗣️ Language / भाषा")
+    selected_lang = st.selectbox(
+        "Choose Debate Language:", 
+        options=list(LANGUAGES.keys()),
+        index=0
+    )
+    # Store selection in session state
+    st.session_state.selected_lang_name = selected_lang
+    st.session_state.selected_lang_code = LANGUAGES[selected_lang]
+    
+    st.divider()
+
     mode = st.radio("Mode:", ["User vs AI", "AI vs AI (Simulation)"])
     enable_audio = st.toggle("Enable AI Voice 🔊", value=True)
     
@@ -179,7 +225,8 @@ with st.sidebar:
 
     with st.expander("📜 Debate Logs"):
         if st.session_state.messages:
-            log_text = f"TOPIC: {st.session_state.topic_input}\n\n"
+            log_text = f"TOPIC: {st.session_state.topic_input}\n"
+            log_text += f"LANGUAGE: {st.session_state.selected_lang_name}\n\n"
             for msg in st.session_state.messages:
                 role = "YOU" if msg['role'] == "user" else "AI"
                 log_text += f"[{role}]: {msg['content']}\n\n"
@@ -222,10 +269,15 @@ with st.sidebar:
             
             if who_starts == "AI (Opponent)":
                  with st.spinner(f"{persona} is preparing..."):
-                    opening = engine.generate_opening(st.session_state.topic_input, persona, ai_side)
+                    opening = engine.generate_opening(
+                        st.session_state.topic_input, 
+                        persona, 
+                        ai_side,
+                        st.session_state.selected_lang_name # Pass Language Name
+                    )
                     st.session_state.messages.append({
                         "role": "assistant", "content": opening, 
-                        "audio": engine.speak(opening) if enable_audio else None
+                        "audio": engine.speak(opening, st.session_state.selected_lang_code) if enable_audio else None
                     })
             st.rerun()
             
@@ -245,7 +297,7 @@ with st.sidebar:
 st.title("⚔️ AI Debate Arena")
 
 if not st.session_state.started:
-    st.info("👈 Configure the arena sidebar to begin.")
+    st.info("👈 Configure language and settings in the sidebar to begin.")
     st.stop()
 
 # --- HUD ---
@@ -274,7 +326,11 @@ if st.session_state.mode == "User":
 
         st.markdown("## 📊 Debate Analysis")
         with st.spinner("The judges are compiling your performance report..."):
-            rep = engine.generate_report(st.session_state.messages, st.session_state.topic)
+            rep = engine.generate_report(
+                st.session_state.messages, 
+                st.session_state.topic,
+                st.session_state.selected_lang_name
+            )
             
             if rep:
                 st.markdown(f"""
@@ -308,7 +364,7 @@ if st.session_state.mode == "User":
 
     st.markdown("### Make your move")
     
-    text_input = st.chat_input("Type argument...")
+    text_input = st.chat_input(f"Type argument in {st.session_state.selected_lang_name}...")
     voice_input = st.audio_input("🎤 Tap to Speak", key=st.session_state.audio_key)
 
     final_prompt = None
@@ -316,7 +372,7 @@ if st.session_state.mode == "User":
         final_prompt = text_input
     elif voice_input:
         with st.spinner("Transcribing..."):
-            transcribed = engine.transcribe_audio(voice_input)
+            transcribed = engine.transcribe_audio(voice_input, st.session_state.selected_lang_name)
             if transcribed and transcribed != st.session_state.last_processed:
                 final_prompt = transcribed
 
@@ -331,18 +387,22 @@ if st.session_state.mode == "User":
                 with st.spinner(f"{st.session_state.persona} is thinking..."):
                     
                     rebuttal = engine.generate_rebuttal(
-                        st.session_state.topic, final_prompt, st.session_state.messages, 
-                        st.session_state.persona, st.session_state.ai_side
+                        st.session_state.topic, 
+                        final_prompt, 
+                        st.session_state.messages, 
+                        st.session_state.persona, 
+                        st.session_state.ai_side,
+                        st.session_state.selected_lang_name # Pass Language
                     )
                     
-                    audio_fp = engine.speak(rebuttal) if enable_audio else None
+                    audio_fp = engine.speak(rebuttal, st.session_state.selected_lang_code) if enable_audio else None
                     st.write(rebuttal)
                     if audio_fp: st.audio(audio_fp, format='audio/mp3')
                     
                     st.session_state.messages.append({"role": "assistant", "content": rebuttal, "audio": audio_fp})
                     
                     score = engine.judge_turn(st.session_state.topic, final_prompt, rebuttal)
-                   
+                    
                     user_dmg = 0
                     ai_dmg = 0
                     
@@ -370,15 +430,23 @@ if st.session_state.mode == "User":
 
 elif st.session_state.mode == "Sim":
     st.subheader(f"🍿 Spectator Mode: {st.session_state.p1} vs {st.session_state.p2}")
+    st.info(f"Speaking in: {st.session_state.selected_lang_name}")
     chat_spot = st.container()
     
     if st.session_state.sim_active:
         history = []
+        lang_name = st.session_state.selected_lang_name
+        
         with chat_spot:
             with st.chat_message("user", avatar="🔵"):
                 placeholder = st.empty()
                 placeholder.info(f"⏳ {st.session_state.p1} is opening...")
-                opening = engine.generate_rebuttal(st.session_state.topic, "Start debate", [], st.session_state.p1, "For")
+                opening = engine.generate_opening(
+                    st.session_state.topic, 
+                    st.session_state.p1, 
+                    "For",
+                    lang_name
+                )
                 placeholder.empty()
                 st.write(f"**{st.session_state.p1}:** {opening}")
                 history.append({"role": "user", "content": opening})
@@ -395,7 +463,14 @@ elif st.session_state.mode == "Sim":
                 with st.chat_message("assistant", avatar="🔴"):
                     placeholder = st.empty()
                     placeholder.info(f"⏳ {st.session_state.p2} is reading...")
-                    reb_2 = engine.generate_rebuttal(st.session_state.topic, prev_arg, history, st.session_state.p2, "Against")
+                    reb_2 = engine.generate_rebuttal(
+                        st.session_state.topic, 
+                        prev_arg, 
+                        history, 
+                        st.session_state.p2, 
+                        "Against",
+                        lang_name
+                    )
                     placeholder.empty()
                     st.write(f"**{st.session_state.p2}:** {reb_2}")
                     history.append({"role": "assistant", "content": reb_2})
@@ -409,7 +484,14 @@ elif st.session_state.mode == "Sim":
                     with st.chat_message("user", avatar="🔵"):
                         placeholder = st.empty()
                         placeholder.info(f"⏳ {st.session_state.p1} is thinking...")
-                        reb_1 = engine.generate_rebuttal(st.session_state.topic, prev_arg, history, st.session_state.p1, "For")
+                        reb_1 = engine.generate_rebuttal(
+                            st.session_state.topic, 
+                            prev_arg, 
+                            history, 
+                            st.session_state.p1, 
+                            "For",
+                            lang_name
+                        )
                         placeholder.empty()
                         st.write(f"**{st.session_state.p1}:** {reb_1}")
                         history.append({"role": "user", "content": reb_1})
