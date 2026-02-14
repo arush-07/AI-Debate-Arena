@@ -3,7 +3,7 @@ import uuid
 import time
 import google.generativeai as genai
 import random
-import hashlib  # <--- NEW IMPORT FOR FIX
+import hashlib  
 from gtts import gTTS
 from io import BytesIO
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -11,10 +11,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 from typing import List
 
-# --- Page Config ---
 st.set_page_config(page_title="AI Debate Arena", page_icon="⚔️", layout="wide")
 
-# --- Custom CSS ---
 st.markdown("""
 <style>
     .stProgress > div > div > div > div { background-color: #00FF41; }
@@ -27,7 +25,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- API Key Handling ---
 try:
     GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 except:
@@ -35,7 +32,6 @@ except:
 
 genai.configure(api_key=GOOGLE_API_KEY)
 
-# --- Language Configuration ---
 LANGUAGES = {
     "English": "en",
     "Hindi": "hi",
@@ -47,7 +43,6 @@ LANGUAGES = {
     "Punjabi": "pa"
 }
 
-# --- Data Models ---
 class TurnScore(BaseModel):
     user_logic: int = Field(..., description="0-100 score for logic")
     ai_logic: int = Field(..., description="0-100 score for logic")
@@ -61,7 +56,6 @@ class FinalAnalysis(BaseModel):
     weakest_point_user: str = Field(..., description="Quote the user's weakest argument")
     improvement_tips: List[str] = Field(..., description="3 specific things the user should remember to improve")
 
-# --- Debate Engine ---
 class DebateEngine:
     def __init__(self):
         try:
@@ -178,7 +172,6 @@ class DebateEngine:
 
 engine = DebateEngine()
 
-# --- Helpers ---
 def update_topic():
     topics = [
         "Is cereal a soup?", "AI will replace teachers", "Cats are better than dogs", 
@@ -188,7 +181,6 @@ def update_topic():
     ]
     st.session_state.topic_input = random.choice(topics)
 
-# --- Session State ---
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
     st.session_state.messages = []
@@ -196,13 +188,12 @@ if "session_id" not in st.session_state:
     st.session_state.ai_hp = 100
     st.session_state.started = False
     st.session_state.crowd_text = "The arena is silent..."
-    st.session_state.last_audio_hash = None # <--- NEW: Track audio processing
+    st.session_state.last_audio_hash = None 
     st.session_state.audio_key = "audio_1"
     st.session_state.topic_input = "Universal Basic Income" 
     st.session_state.selected_lang_name = "English"
     st.session_state.selected_lang_code = "en"
 
-# --- Sidebar ---
 with st.sidebar:
     st.title("⚙️ Arena Setup")
     
@@ -258,7 +249,7 @@ with st.sidebar:
             st.session_state.persona = persona
             st.session_state.topic = st.session_state.topic_input 
             st.session_state.ai_side = ai_side
-            st.session_state.last_audio_hash = None # Reset audio tracking
+            st.session_state.last_audio_hash = None 
             st.session_state.audio_key = str(uuid.uuid4())
             
             if who_starts == "AI (Opponent)":
@@ -288,14 +279,12 @@ with st.sidebar:
             st.session_state.sim_active = True
             st.rerun()
 
-# --- Main UI ---
 st.title("⚔️ AI Debate Arena")
 
 if not st.session_state.started:
     st.info("👈 Configure language and settings in the sidebar to begin.")
     st.stop()
 
-# --- HUD ---
 if st.session_state.mode == "User":
     col1, col2, col3 = st.columns([1, 2, 1])
     with col1:
@@ -310,7 +299,6 @@ if st.session_state.mode == "User":
 
 if st.session_state.mode == "User":
 
-    # --- Game Over Check ---
     if st.session_state.user_hp <= 0 or st.session_state.ai_hp <= 0:
         winner = "YOU" if st.session_state.user_hp > 0 else "AI"
         
@@ -351,7 +339,6 @@ if st.session_state.mode == "User":
             
         st.stop()
 
-    # --- Chat History ---
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
@@ -360,27 +347,24 @@ if st.session_state.mode == "User":
 
     st.markdown("### Make your move")
     
-    # --- Input Area ---
     text_input = st.chat_input(f"Type argument in {st.session_state.selected_lang_name}...")
     voice_input = st.audio_input("🎤 Tap to Speak", key=st.session_state.audio_key)
 
     final_prompt = None
     
-    # --- INPUT PROCESSING LOGIC (FIXED FOR LOOPING) ---
     if text_input:
         final_prompt = text_input
     
     elif voice_input:
-        # 1. Read bytes to create a unique hash (Fingerprint)
+        
         voice_input.seek(0)
         audio_data = voice_input.read()
-        voice_input.seek(0) # Reset pointer so Transcriber can read it
+        voice_input.seek(0) 
         
         current_audio_hash = hashlib.md5(audio_data).hexdigest()
         
-        # 2. Compare with the last processed audio
         if current_audio_hash != st.session_state.last_audio_hash:
-            # It's NEW audio!
+           
             st.session_state.last_audio_hash = current_audio_hash
             
             with st.spinner("Transcribing..."):
@@ -390,12 +374,11 @@ if st.session_state.mode == "User":
                 else:
                     final_prompt = transcribed
         else:
-            # It's the SAME audio as before (loop prevention)
+            
             pass
 
-    # --- Turn Execution ---
     if final_prompt:
-        # Double check to ensure we don't process the exact same text twice in a row
+        
         if st.session_state.messages and st.session_state.messages[-1]['role'] == 'user' and st.session_state.messages[-1]['content'] == final_prompt:
             pass 
         else:
@@ -419,7 +402,6 @@ if st.session_state.mode == "User":
                     
                     st.session_state.messages.append({"role": "assistant", "content": rebuttal, "audio": audio_fp})
                     
-                    # Scoring
                     score = engine.judge_turn(st.session_state.topic, final_prompt, rebuttal)
                     
                     user_dmg = 0
@@ -446,7 +428,6 @@ if st.session_state.mode == "User":
                     time.sleep(0.5) 
                     st.rerun()
 
-# --- Simulation Mode ---
 elif st.session_state.mode == "Sim":
     st.subheader(f"🍿 Spectator Mode: {st.session_state.p1} vs {st.session_state.p2}")
     st.info(f"Speaking in: {st.session_state.selected_lang_name}")
