@@ -2,7 +2,6 @@ import streamlit as st
 import uuid
 import time
 import google.generativeai as genai
-from google.generativeai.types import HarmCategory, HarmBlockThreshold
 import random
 import hashlib
 from gtts import gTTS
@@ -99,13 +98,13 @@ class FinalAnalysis(BaseModel):
 class DebateEngine:
     def __init__(self):
         try:
-            # --- SAFETY SETTINGS FIX (CRITICAL) ---
-            # Disables strict filters so the AI can debate aggressively in any language
+            # --- SAFETY SETTINGS FIX ---
+            # Using STRINGS instead of Enums to fix the Pydantic Validation Error
             safety_settings = {
-                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+                "HARM_CATEGORY_HARASSMENT": "BLOCK_NONE",
+                "HARM_CATEGORY_HATE_SPEECH": "BLOCK_NONE",
+                "HARM_CATEGORY_SEXUALLY_EXPLICIT": "BLOCK_NONE",
+                "HARM_CATEGORY_DANGEROUS_CONTENT": "BLOCK_NONE",
             }
 
             self.llm = ChatGoogleGenerativeAI(
@@ -527,7 +526,6 @@ def main_game():
             
             prev_arg = opening
             progress_bar = st.progress(0, text="Debate in progress...")
-            
             for i in range(4):
                 progress_bar.progress((i + 1) / 4)
                 time.sleep(0.5) 
