@@ -22,10 +22,10 @@ The system leverages **Google Gemini 2.5 Flash** with **LangChain orchestration*
 With features like **health points (HP), AI personas, voice input, and post-match analysis**, it simulates a **high-stakes debate battlefield**.
 
 ---
-### Live URL:
-```
-https://ai-debate-arena-kjxuk7cbrhezeyvpjejgy9.streamlit.app/
-```
+## Live Demo
+ Experience the app here:  
+ https://ai-debate-arena-kjxuk7cbrhezevvpjejgy9.streamlit.app/
+ 
 ---
 ## Key Features
 
