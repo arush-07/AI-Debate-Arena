@@ -9,7 +9,7 @@
 
 ---
 
-## 🚀 About
+## About
 
 **AI Debate Arena** transforms traditional debates into a **real-time gamified experience** where users battle AI opponents using logic and reasoning.
 
@@ -22,51 +22,55 @@ The system leverages **Google Gemini 2.5 Flash** with **LangChain orchestration*
 With features like **health points (HP), AI personas, voice input, and post-match analysis**, it simulates a **high-stakes debate battlefield**.
 
 ---
+### Live URL:
+```
+https://ai-debate-arena-kjxuk7cbrhezeyvpjejgy9.streamlit.app/
+```
+---
+## Key Features
 
-## 🎯 Key Features
-
-### ⚔️ Gamified Debate System
+### Gamified Debate System
 - Health Points (HP) for both user and AI
 - Logical superiority = damage to opponent
 - Real-time feedback with crowd reactions
 
-### 🤖 Adaptive AI Personas
+### Adaptive AI Personas
 Debate against unique personalities:
-- 🧠 Logical Vulcan  
-- 😏 Sarcastic Troll  
-- 📚 Philosopher  
-- 😈 Devil’s Advocate  
+-  Logical Vulcan  
+-  Sarcastic Troll  
+-  Philosopher  
+-  Devil’s Advocate  
 
-### ⚖️ AI Judge System
+### AI Judge System
 - Scores each turn based on:
   - Logic
   - Reasoning
 - Detects logical fallacies
 - Decides winner per round
 
-### 🗣️ Multilingual Support
+### Multilingual Support
 Debate in multiple languages:
 - English, Hindi, Gujarati, Marathi, Tamil, Telugu, Kannada, Punjabi
 
-### 🎤 Voice Input + AI Voice Output
+### Voice Input + AI Voice Output
 - Speak your arguments (speech-to-text via Gemini)
 - Listen to AI responses (text-to-speech using gTTS)
 
-### 📊 Post-Debate Analysis
-- Best argument 💎
-- Weakest argument 📉
-- Personalized improvement tips 💡
-
-### 🎬 AI vs AI Simulation Mode
+### Post-Debate Analysis
+- Best argument 
+- Weakest argument
+- Personalized improvement tips
+  
+### AI vs AI Simulation Mode
 - Watch two AI personas debate autonomously
 - Great for learning argument styles
 
-### 📜 Downloadable Debate Logs
+### Downloadable Debate Logs
 - Export full debate history as `.txt`
 
 ---
 
-## 🧠 Technology Stack
+## Technology Stack
 
 | Component | Technology |
 |----------|-----------|
