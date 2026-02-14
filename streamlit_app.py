@@ -576,8 +576,6 @@ if not st.session_state.authenticated:
             
             if submitted:
                 check_login(username, password)
-                
-    st.info("💡 **Demo Credentials:**\n\nUser: `Arush` | Pass: `1234`")
 
 else:
     # If authenticated, run the main game function
