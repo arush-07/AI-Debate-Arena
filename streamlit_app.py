@@ -1,8 +1,6 @@
 import streamlit as st
 import uuid
 import time
-import pandas as pd
-import plotly.graph_objects as go
 import google.generativeai as genai
 import random
 from gtts import gTTS
@@ -29,11 +27,11 @@ st.markdown("""
 try:
     GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 except:
+    
     GOOGLE_API_KEY = "PASTE_YOUR_KEY_HERE"
 
 genai.configure(api_key=GOOGLE_API_KEY)
 
-# --- Language Configuration ---
 LANGUAGES = {
     "English": "en",
     "Hindi": "hi",
@@ -61,6 +59,7 @@ class FinalAnalysis(BaseModel):
 class DebateEngine:
     def __init__(self):
         try:
+            
             self.llm = ChatGoogleGenerativeAI(
                 model="gemini-2.5-flash", 
                 google_api_key=GOOGLE_API_KEY,
@@ -72,7 +71,7 @@ class DebateEngine:
     def speak(self, text, lang_code='en'):
         try:
             if not text: return None
-            # gTTS requires specific language codes
+            
             tts = gTTS(text=text, lang=lang_code)
             fp = BytesIO()
             tts.write_to_fp(fp)
@@ -81,13 +80,17 @@ class DebateEngine:
 
     def transcribe_audio(self, audio_file, language_name="English"):
         try:
+            
             model = genai.GenerativeModel("gemini-2.5-flash")
             audio_bytes = audio_file.read()
-            # Hinting the language helps transcription accuracy
+            
             prompt = f"Transcribe this audio exactly as spoken. The language is likely {language_name}."
+            
             response = model.generate_content([prompt, {"mime_type": "audio/mp3", "data": audio_bytes}])
             return response.text
-        except: return None
+        except Exception as e:
+            st.error(f"Transcription Error: {e}")
+            return None
 
     def generate_opening(self, topic, persona, stance, language_name):
         template = f"""
@@ -199,20 +202,19 @@ if "session_id" not in st.session_state:
     st.session_state.last_processed = "" 
     st.session_state.audio_key = "audio_1"
     st.session_state.topic_input = "Universal Basic Income" 
-    st.session_state.selected_lang_name = "English" # Default
+    st.session_state.selected_lang_name = "English"
     st.session_state.selected_lang_code = "en"
 
 with st.sidebar:
     st.title("⚙️ Arena Setup")
-    
-    # --- Language Selector ---
+   
     st.subheader("🗣️ Language / भाषा")
     selected_lang = st.selectbox(
         "Choose Debate Language:", 
         options=list(LANGUAGES.keys()),
         index=0
     )
-    # Store selection in session state
+
     st.session_state.selected_lang_name = selected_lang
     st.session_state.selected_lang_code = LANGUAGES[selected_lang]
     
@@ -294,6 +296,7 @@ with st.sidebar:
             st.session_state.sim_active = True
             st.rerun()
 
+# --- Main UI ---
 st.title("⚔️ AI Debate Arena")
 
 if not st.session_state.started:
@@ -315,6 +318,7 @@ if st.session_state.mode == "User":
 
 if st.session_state.mode == "User":
 
+    # --- Game Over Check ---
     if st.session_state.user_hp <= 0 or st.session_state.ai_hp <= 0:
         winner = "YOU" if st.session_state.user_hp > 0 else "AI"
         
@@ -356,6 +360,7 @@ if st.session_state.mode == "User":
             
         st.stop()
 
+    # --- Chat History ---
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
@@ -364,20 +369,28 @@ if st.session_state.mode == "User":
 
     st.markdown("### Make your move")
     
+    # --- Input Area ---
     text_input = st.chat_input(f"Type argument in {st.session_state.selected_lang_name}...")
     voice_input = st.audio_input("🎤 Tap to Speak", key=st.session_state.audio_key)
 
     final_prompt = None
+    
+    # Process inputs
     if text_input:
         final_prompt = text_input
     elif voice_input:
         with st.spinner("Transcribing..."):
             transcribed = engine.transcribe_audio(voice_input, st.session_state.selected_lang_name)
-            if transcribed and transcribed != st.session_state.last_processed:
+            
+            if not transcribed:
+                st.warning("⚠️ No clear speech detected. Please speak closer to the microphone.")
+            elif transcribed != st.session_state.last_processed:
                 final_prompt = transcribed
 
+    # --- Turn Execution ---
     if final_prompt:
-        if st.session_state.messages and st.session_state.messages[-1]['role'] == 'user':
+        # Avoid duplicate submissions
+        if st.session_state.messages and st.session_state.messages[-1]['role'] == 'user' and st.session_state.messages[-1]['content'] == final_prompt:
             pass 
         else:
             st.session_state.last_processed = final_prompt
@@ -392,7 +405,7 @@ if st.session_state.mode == "User":
                         st.session_state.messages, 
                         st.session_state.persona, 
                         st.session_state.ai_side,
-                        st.session_state.selected_lang_name # Pass Language
+                        st.session_state.selected_lang_name
                     )
                     
                     audio_fp = engine.speak(rebuttal, st.session_state.selected_lang_code) if enable_audio else None
@@ -401,6 +414,7 @@ if st.session_state.mode == "User":
                     
                     st.session_state.messages.append({"role": "assistant", "content": rebuttal, "audio": audio_fp})
                     
+                    # Scoring
                     score = engine.judge_turn(st.session_state.topic, final_prompt, rebuttal)
                     
                     user_dmg = 0
@@ -427,7 +441,7 @@ if st.session_state.mode == "User":
                     time.sleep(0.5) 
                     st.rerun()
 
-
+# --- Simulation Mode ---
 elif st.session_state.mode == "Sim":
     st.subheader(f"🍿 Spectator Mode: {st.session_state.p1} vs {st.session_state.p2}")
     st.info(f"Speaking in: {st.session_state.selected_lang_name}")
