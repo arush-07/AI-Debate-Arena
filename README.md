@@ -24,7 +24,9 @@ With features like **health points (HP), AI personas, voice input, and post-matc
 ---
 ## Live Demo
  Experience the app here:  
- https://ai-debate-arena-kjxuk7cbrhezevvpjejgy9.streamlit.app/
+```
+https://ai-debate-arena-kjxuk7cbrhezeyvpjejgy9.streamlit.app/
+```
  
 ---
 ## Key Features
